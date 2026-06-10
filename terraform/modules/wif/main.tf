@@ -71,6 +71,14 @@ resource "google_project_iam_member" "ci_viewer" {
   member  = "serviceAccount:${google_service_account.github_ci.email}"
 }
 
+# roles/viewer excludes storage.buckets.getIamPolicy; securityReviewer adds it
+# so that `terraform plan` can refresh bucket IAM binding resources.
+resource "google_project_iam_member" "ci_security_reviewer" {
+  project = var.project_id
+  role    = "roles/iam.securityReviewer"
+  member  = "serviceAccount:${google_service_account.github_ci.email}"
+}
+
 # Read-only access to Terraform remote state — allows `terraform plan` in CI
 # without requiring a full state admin role.
 resource "google_storage_bucket_iam_member" "ci_tfstate_viewer" {
