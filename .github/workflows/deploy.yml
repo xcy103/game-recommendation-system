@@ -1,49 +1,136 @@
-# Deploy: runs on merge to main — build images, terraform plan/apply, deploy DAG
-# DESIGN.md §11: "On merge to main: build & push images; terraform plan (gated apply);
-#                  deploy DAG to Composer's GCS bucket; optionally deploy Cloud Run."
-# Auth: Workload Identity Federation — no long-lived JSON keys.
+# Deploy: runs on every merge to main.
+# DESIGN.md §11: "On merge: build+push ingester image, terraform plan (gated apply), deploy DAG"
+#
+# Prerequisites (one-time setup):
+#   1. terraform apply -var="enable_wif=true" ...  (creates WIF pool + CI SA + AR repo)
+#   2. Add to GitHub repo Secrets:
+#        GCP_WORKLOAD_IDENTITY_PROVIDER  ← terraform output -raw workload_identity_provider
+#        GCP_SERVICE_ACCOUNT             ← terraform output -raw github_ci_sa_email
+#   3. (optional) Add Variable: ENABLE_COMPOSER=true  ← to activate DAG deploy job
 
 name: Deploy
 
-# TODO: change back to push trigger + add WIF auth when ready.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
-# TODO: populate env vars from GCP project
+permissions:
+  contents: read
+  id-token: write  # required for WIF token exchange
+
 env:
   PROJECT_ID: steam-reviews-platform
   REGION: us-central1
-  # WIF_PROVIDER: projects/<NUM>/locations/global/workloadIdentityPools/<POOL>/providers/<PROV>
-  # WIF_SA: github-deploy@steam-reviews-platform.iam.gserviceaccount.com
+  AR_REPO: steam-dev  # Artifact Registry repo created by modules/wif
 
 jobs:
+  # ── Job 1: Build ingester Docker image → push to Artifact Registry ─────────
+  build-push:
+    name: Build & push ingester image
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.push.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push
+        id: push
+        run: |
+          BASE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/ingester"
+          SHA_TAG="${BASE}:${{ github.sha }}"
+
+          docker build -f ingestion/Dockerfile \
+            -t "${SHA_TAG}" \
+            -t "${BASE}:latest" \
+            .
+
+          docker push "${SHA_TAG}"
+          docker push "${BASE}:latest"
+
+          echo "image=${SHA_TAG}" >> "$GITHUB_OUTPUT"
+
+          echo "### Ingester image pushed" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`${SHA_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Job 2: Terraform plan — show what would change on next manual apply ─────
+  # Uses -backend=false because the GCS state bucket is created by the first
+  # terraform apply (which is manual). Switch to real backend once state exists.
   terraform-plan:
     name: Terraform plan
     runs-on: ubuntu-latest
+    needs: build-push
+
     steps:
       - uses: actions/checkout@v4
-      # TODO: add google-github-actions/auth with WIF
+
+      - name: Authenticate to GCP via Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "~1.5"
-      - working-directory: terraform
-        run: terraform init
-      - working-directory: terraform
-        run: terraform plan -out=tfplan
-      # TODO: gated apply step (manual approval via environment protection rule)
 
-  build-ingester:
-    name: Build & push ingester image
+      - name: terraform init
+        working-directory: terraform
+        run: terraform init -backend=false
+
+      - name: terraform plan
+        working-directory: terraform
+        run: |
+          terraform plan \
+            -var="project_id=${{ env.PROJECT_ID }}" \
+            -var="github_repo=xcy103/game-recommendation-system" \
+            -var="enable_wif=true" \
+            -out=deploy.tfplan
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.sha }}
+          path: terraform/deploy.tfplan
+          retention-days: 7
+
+  # ── Job 3: Deploy DAG to Cloud Composer ────────────────────────────────────
+  # Gated: set GitHub repo Variable ENABLE_COMPOSER=true to activate.
+  # Also requires Secret: COMPOSER_DAG_BUCKET (bucket name of Composer's DAG folder).
+  # Airflow runs locally (docker compose) by default — see docker/docker-compose-airflow.yml.
+  deploy-dag:
+    name: Deploy DAG → Composer
     runs-on: ubuntu-latest
+    needs: build-push
+    if: ${{ vars.ENABLE_COMPOSER == 'true' }}
+
     steps:
       - uses: actions/checkout@v4
-      # TODO: auth + docker build + push to Artifact Registry
-      - run: echo "TODO — build docker/ingester.Dockerfile"
 
-  build-api:
-    name: Build & push API image
-    runs-on: ubuntu-latest
-    if: false   # enable when api/ is implemented
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "TODO — build api/Dockerfile"
+      - name: Authenticate to GCP via Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Upload DAG to Composer GCS bucket
+        run: |
+          gcloud storage cp \
+            airflow/dags/steam_reviews_pipeline.py \
+            "gs://${{ secrets.COMPOSER_DAG_BUCKET }}/dags/steam_reviews_pipeline.py"
+
+          echo "DAG deployed → gs://${{ secrets.COMPOSER_DAG_BUCKET }}/dags/"
