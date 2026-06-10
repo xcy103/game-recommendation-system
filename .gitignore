@@ -61,6 +61,7 @@ dbt/logs/
 # ── Airflow ──────────────────────────────────────────────────────────────────
 airflow/logs/
 airflow/plugins/
+logs/airflow/
 airflow.cfg
 airflow.db
 airflow/airflow.db
@@ -85,3 +86,4 @@ data/
 
 # ── Local notes (never publish) ──────────────────────────────────────────────
 resume_notes.md
+docker/logs/
