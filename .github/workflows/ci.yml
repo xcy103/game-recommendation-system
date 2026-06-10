@@ -1,4 +1,4 @@
-# CI: runs on every PR — lint, unit tests, terraform validate
+# CI: runs on every PR — lint, unit tests, terraform validate, dbt parse
 # DESIGN.md §11: "On PR: lint (ruff/black), unit tests, terraform validate + fmt -check, dbt parse"
 
 name: CI
@@ -20,8 +20,8 @@ jobs:
       - run: ruff check .
       - run: black --check .
 
-  test:
-    name: Unit tests
+  test-ingestion:
+    name: Unit tests — ingestion
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +29,22 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install ".[ingestion,tests]"
-      - run: pytest -m "not slow and not integration"
+      - run: pytest ingestion/tests -m "not integration"
+
+  test-spark:
+    name: Unit tests — PySpark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+      - run: pip install ".[spark,tests]"
+      - run: pytest spark/tests -m "not integration"
 
   terraform:
     name: Terraform validate
@@ -46,11 +61,13 @@ jobs:
       - working-directory: terraform
         run: terraform fmt -check -recursive
 
-  # TODO: add dbt parse step once models are in place
-  # dbt-parse:
-  #   name: dbt parse
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - run: pip install dbt-bigquery
-  #     - run: dbt parse --profiles-dir dbt --project-dir dbt
+  dbt-parse:
+    name: dbt parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install dbt-bigquery
+      - run: dbt parse --profiles-dir dbt --project-dir dbt --no-version-check
