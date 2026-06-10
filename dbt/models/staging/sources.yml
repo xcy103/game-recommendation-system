@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: staging
+    description: "Silver layer loaded from GCS Parquet by scripts/bq_load_silver.sh"
+    database: steam-reviews-platform
+    schema: steam_staging_dev
+    tables:
+      - name: stg_reviews
+        description: "One row per Steam review, partitioned by dt (ingestion date)"
+        columns:
+          - name: recommendationid
+            description: "Steam's unique review ID"
+          - name: appid
+            description: "Steam application ID"
+          - name: steamid
+            description: "Author Steam ID"
+          - name: dt
+            description: "Ingestion date partition key"

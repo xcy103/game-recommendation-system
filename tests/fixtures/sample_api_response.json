@@ -1,0 +1,140 @@
+{
+  "_fixture_meta": {
+    "appid": 730,
+    "app_name": "Counter-Strike 2",
+    "source": "hand-written fixture — do NOT hit the real Steam API in unit tests",
+    "design_ref": "DESIGN.md §3"
+  },
+  "success": 1,
+  "query_summary": {
+    "num_reviews": 5,
+    "review_score": 7,
+    "review_score_desc": "Mostly Positive",
+    "total_positive": 287400,
+    "total_negative": 98200,
+    "total_reviews": 385600
+  },
+  "reviews": [
+    {
+      "recommendationid": "fixture_001",
+      "author": {
+        "steamid": "76561198000000001",
+        "num_games_owned": 312,
+        "num_reviews": 14,
+        "playtime_forever": 18420,
+        "playtime_last_two_weeks": 240,
+        "playtime_at_review": 15600,
+        "last_played": 1704067200
+      },
+      "language": "english",
+      "review": "After 260 hours I still find this game incredibly fun. The gunplay is tight, the maps are well-designed, and competitive mode has improved a lot since launch.",
+      "timestamp_created": 1703980800,
+      "timestamp_updated": 1703980800,
+      "voted_up": true,
+      "votes_up": 87,
+      "votes_funny": 2,
+      "weighted_vote_score": "0.893421",
+      "comment_count": 5,
+      "steam_purchase": true,
+      "received_for_free": false,
+      "written_during_early_access": false
+    },
+    {
+      "recommendationid": "fixture_002",
+      "author": {
+        "steamid": "76561198000000002",
+        "num_games_owned": 47,
+        "num_reviews": 3,
+        "playtime_forever": 420,
+        "playtime_last_two_weeks": 0,
+        "playtime_at_review": 380,
+        "last_played": 1701388800
+      },
+      "language": "english",
+      "review": "Too many cheaters. The anti-cheat is basically non-existent at lower ranks. Not recommended until Valve fixes this.",
+      "timestamp_created": 1701302400,
+      "timestamp_updated": 1701388800,
+      "voted_up": false,
+      "votes_up": 134,
+      "votes_funny": 12,
+      "weighted_vote_score": "0.912345",
+      "comment_count": 18,
+      "steam_purchase": true,
+      "received_for_free": false,
+      "written_during_early_access": false
+    },
+    {
+      "recommendationid": "fixture_003",
+      "author": {
+        "steamid": "76561198000000003",
+        "num_games_owned": 1204,
+        "num_reviews": 89,
+        "playtime_forever": 42000,
+        "playtime_last_two_weeks": 1800,
+        "playtime_at_review": 39600,
+        "last_played": 1704153600
+      },
+      "language": "english",
+      "review": "10/10 would spend another 700 hours failing to hit Global Elite again.",
+      "timestamp_created": 1704067200,
+      "timestamp_updated": 1704067200,
+      "voted_up": true,
+      "votes_up": 412,
+      "votes_funny": 201,
+      "weighted_vote_score": "0.956781",
+      "comment_count": 43,
+      "steam_purchase": true,
+      "received_for_free": false,
+      "written_during_early_access": false
+    },
+    {
+      "recommendationid": "fixture_004",
+      "author": {
+        "steamid": "76561198000000004",
+        "num_games_owned": 8,
+        "num_reviews": 1,
+        "playtime_forever": 12,
+        "playtime_last_two_weeks": 0,
+        "playtime_at_review": 10,
+        "last_played": 1698796800
+      },
+      "language": "english",
+      "review": "",
+      "timestamp_created": 1698796800,
+      "timestamp_updated": 1698796800,
+      "voted_up": false,
+      "votes_up": 0,
+      "votes_funny": 0,
+      "weighted_vote_score": "0.000000",
+      "comment_count": 0,
+      "steam_purchase": false,
+      "received_for_free": false,
+      "written_during_early_access": false
+    },
+    {
+      "recommendationid": "fixture_005",
+      "author": {
+        "steamid": "76561198000000005",
+        "num_games_owned": 523,
+        "num_reviews": 31,
+        "playtime_forever": 7200,
+        "playtime_last_two_weeks": 600,
+        "playtime_at_review": 5400,
+        "last_played": 1704240000
+      },
+      "language": "english",
+      "review": "Valve finally optimised the game. Runs smoother than GO ever did on my aging rig. Premier mode is excellent for structured competition without a third-party client.",
+      "timestamp_created": 1703894400,
+      "timestamp_updated": 1703894400,
+      "voted_up": true,
+      "votes_up": 56,
+      "votes_funny": 1,
+      "weighted_vote_score": "0.874200",
+      "comment_count": 3,
+      "steam_purchase": true,
+      "received_for_free": false,
+      "written_during_early_access": false
+    }
+  ],
+  "cursor": "AoJwxYTfixture_next_page_cursor=="
+}

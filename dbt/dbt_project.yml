@@ -1,0 +1,37 @@
+name: steam_reviews
+version: "0.1.0"
+config-version: 2
+
+profile: steam_reviews
+
+model-paths: ["models"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# ---------------------------------------------------------------------------
+# Model configs — materialisation and physical optimisation defaults
+# DESIGN.md §7: partition + cluster fact_reviews; incremental for large tables
+# No +schema overrides — all models write to the profile dataset (steam_gold_dev).
+# ---------------------------------------------------------------------------
+models:
+  steam_reviews:
+    staging:
+      +materialized: view
+
+    marts:
+      +materialized: table
+
+      # fact_reviews override: incremental + partition + cluster (DESIGN §5)
+      fact_reviews:
+        +materialized: incremental
+        +incremental_strategy: insert_overwrite
+        +partition_by:
+          field: dt
+          data_type: date
+        +cluster_by:
+          - game_sk

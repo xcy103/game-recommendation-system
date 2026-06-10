@@ -1,0 +1,56 @@
+# CI: runs on every PR — lint, unit tests, terraform validate
+# DESIGN.md §11: "On PR: lint (ruff/black), unit tests, terraform validate + fmt -check, dbt parse"
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (ruff + black)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ".[lint]"
+      - run: ruff check .
+      - run: black --check .
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ".[ingestion,tests]"
+      - run: pytest -m "not slow and not integration"
+
+  terraform:
+    name: Terraform validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+      - working-directory: terraform
+        run: terraform init -backend=false
+      - working-directory: terraform
+        run: terraform validate
+      - working-directory: terraform
+        run: terraform fmt -check -recursive
+
+  # TODO: add dbt parse step once models are in place
+  # dbt-parse:
+  #   name: dbt parse
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: pip install dbt-bigquery
+  #     - run: dbt parse --profiles-dir dbt --project-dir dbt

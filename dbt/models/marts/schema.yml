@@ -1,0 +1,84 @@
+version: 2
+
+models:
+  - name: dim_games
+    description: "Game dimension — one row per Steam appid seen in review data"
+    columns:
+      - name: game_sk
+        description: "Surrogate key (FARM_FINGERPRINT of appid)"
+        tests:
+          - not_null
+          - unique
+      - name: appid
+        description: "Steam application ID (natural key)"
+        tests:
+          - not_null
+          - unique
+      - name: positive_rate
+        description: "total_positive / total_reviews"
+        tests:
+          - not_null
+          - positive_rate_between_0_and_1
+
+  - name: dim_users
+    description: "User dimension — one row per reviewer (identified by steamid)"
+    columns:
+      - name: user_sk
+        description: "Surrogate key (FARM_FINGERPRINT of steamid)"
+        tests:
+          - not_null
+          - unique
+      - name: steamid
+        description: "Steam author ID (natural key)"
+        tests:
+          - not_null
+          - unique
+
+  - name: fact_reviews
+    description: "Fact table — one row per review, partitioned by dt, clustered by game_sk"
+    columns:
+      - name: review_id
+        description: "Steam unique review ID"
+        tests:
+          - not_null
+          - unique
+      - name: game_sk
+        description: "FK to dim_games"
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_games')
+                field: game_sk
+      - name: user_sk
+        description: "FK to dim_users (null if steamid was missing)"
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_users')
+                field: user_sk
+              config:
+                where: "user_sk is not null"
+      - name: dt
+        description: "Ingestion date — partition key"
+        tests:
+          - not_null
+      - name: sentiment_label
+        description: "pos / neu / neg"
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pos', 'neu', 'neg']
+
+  - name: mart_game_sentiment_trends
+    description: "Daily aggregated sentiment metrics per game"
+    columns:
+      - name: game_sk
+        tests:
+          - not_null
+      - name: dt
+        tests:
+          - not_null
+      - name: positive_rate
+        tests:
+          - positive_rate_between_0_and_1

@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "steam-reviews-platform"
+version = "0.1.0"
+description = "Batch data platform: Steam reviews → medallion pipeline → BigQuery → recommendations"
+requires-python = ">=3.11"
+# No hard runtime deps at root; each sub-package carries its own extras group.
+dependencies = []
+
+[project.optional-dependencies]
+ingestion = [
+    "requests>=2.31",
+    "tenacity>=8.2",
+    "google-cloud-storage>=2.14",
+]
+spark = [
+    "pyspark>=3.5",
+    "vaderSentiment>=3.3",
+    "pyarrow>=12.0",
+    "google-cloud-bigquery>=3.14",
+    "google-cloud-storage>=2.14",
+]
+api = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "google-cloud-bigquery>=3.14",
+]
+tests = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "chispa>=0.9",           # PySpark DataFrame equality assertions
+    "pytest-mock>=3.12",
+    "responses>=0.25",       # mock HTTP for ingestion tests
+]
+lint = [
+    "ruff>=0.4",
+    "black>=24.0",
+]
+# Convenience: install everything for local dev
+dev = [
+    "steam-reviews-platform[ingestion,spark,api,tests,lint]",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ingestion*", "spark*", "api*", "airflow*"]
+
+# ---------------------------------------------------------------------------
+# Ruff config
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]  # line length handled by black
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]   # assert is fine in tests
+"*/tests/*" = ["S101"]
+
+# ---------------------------------------------------------------------------
+# Black config
+# ---------------------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+# ---------------------------------------------------------------------------
+# Pytest config
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests", "ingestion/tests", "spark/tests"]
+addopts = "--tb=short -q"
+markers = [
+    "integration: requires GCP credentials (deselect with -m 'not integration')",
+    "slow: long-running tests",
+]

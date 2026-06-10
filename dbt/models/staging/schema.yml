@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: stg_reviews
+    description: "Cleaned view over steam_staging_dev.stg_reviews (Spark silver layer)"
+    columns:
+      - name: review_id
+        description: "Steam unique review ID (renamed from recommendationid)"
+        tests:
+          - not_null
+          - unique
+      - name: appid
+        description: "Steam application ID"
+        tests:
+          - not_null
+      - name: steamid
+        description: "Author Steam ID"
+      - name: dt
+        description: "Ingestion date partition key"
+        tests:
+          - not_null

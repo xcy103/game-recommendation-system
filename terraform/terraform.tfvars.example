@@ -1,0 +1,43 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — never commit real values.
+
+# ── Required ────────────────────────────────────────────────────────────────
+project_id = "steam-reviews-platform"
+region     = "us-central1"
+environment = "dev"
+
+# ── Budget alert (optional but strongly recommended — DESIGN §15) ────────────
+# Find your billing account ID in GCP Console → Billing → Account Management
+# Format: XXXXXX-XXXXXX-XXXXXX
+# Leave empty ("") to skip creating the budget resource.
+billing_account_id = ""
+monthly_budget_usd = 50
+
+# ── Feature gates ────────────────────────────────────────────────────────────
+# DESIGN §6: Enable before running PySpark on Dataproc Serverless.
+# Creates: dataproc staging GCS bucket + IAM bindings for spark SA.
+# Billing is per-job (vCPU-seconds), not per-idle — cheap when nothing is running.
+enable_dataproc = false
+
+# DESIGN §9: Composer costs ~$300+/month. Keep false during development.
+# Use local Airflow (docker compose) instead. Set true only when demoing end-to-end.
+enable_composer = false
+
+# DESIGN §8: Cloud Run scales to zero (minimal cost). Enable
+# when the FastAPI image has been built and pushed to Artifact Registry.
+enable_cloudrun = false
+
+# ── Storage lifecycle (days) ─────────────────────────────────────────────────
+bronze_retention_days           = 90   # Delete raw JSON after 90 days
+bronze_nearline_transition_days = 30   # Move to NEARLINE (cheaper) at 30 days
+silver_retention_days           = 180  # Delete Parquet after 180 days
+
+# ── Composer image (only used when enable_composer = true) ───────────────────
+# List available versions:
+#   gcloud composer images list --region=us-central1
+composer_image_version = "composer-2.6.6-airflow-2.7.3"
+
+# ── Cloud Run image (only used when enable_cloudrun = true) ─────────────────
+# Replace with your Artifact Registry image once built:
+#   us-central1-docker.pkg.dev/steam-reviews-platform/steam-images/recommender-api:latest
+cloudrun_image = "us-docker.pkg.dev/cloudrun/container/hello"

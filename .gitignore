@@ -1,0 +1,87 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+.venv-dbt/
+venv/
+env/
+.env
+.env.*
+*.pyo
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.log
+
+# ── Jupyter ──────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Terraform ────────────────────────────────────────────────────────────────
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+# real values; use terraform.tfvars.example
+terraform/terraform.tfvars
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ── GCP credentials ─────────────────────────────────────────────────────────
+# catch-all for service account key files; fixtures and dbt catalog are exempted below
+*.json
+!tests/fixtures/*.json
+!dbt/*.json
+service-account*.json
+*-keyfile.json
+application_default_credentials.json
+
+# ── dbt ──────────────────────────────────────────────────────────────────────
+# real profiles.yml — use dbt/profiles.yml.example instead
+dbt/profiles.yml
+dbt/target/
+dbt/dbt_packages/
+dbt/.user.yml
+dbt/logs/
+
+# ── Airflow ──────────────────────────────────────────────────────────────────
+airflow/logs/
+airflow/plugins/
+airflow.cfg
+airflow.db
+airflow/airflow.db
+standalone_admin_password.txt
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── IDEs & local tooling ─────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+# Claude Code local session data
+.claude/
+
+# ── Local pipeline data (smoke tests / dev runs) ─────────────────────────────
+# bronze/silver local output and checkpoints — never commit raw data
+data/
+
+# ── Local notes (never publish) ──────────────────────────────────────────────
+resume_notes.md

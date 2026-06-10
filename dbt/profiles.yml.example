@@ -1,0 +1,27 @@
+# Copy to ~/.dbt/profiles.yml (or dbt/profiles.yml if using --profiles-dir)
+# and fill in your project_id + dataset names.
+# NEVER commit the real profiles.yml — it contains credentials.
+
+steam_reviews:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth               # uses gcloud ADC — no service-account key file needed
+      project: steam-reviews-platform
+      dataset: steam_gold_dev     # dbt writes gold models here
+      location: US-CENTRAL1
+      threads: 4
+      timeout_seconds: 300
+      priority: interactive
+
+    prod:
+      type: bigquery
+      method: service-account
+      project: steam-reviews-platform
+      dataset: steam_gold_prod
+      location: US-CENTRAL1
+      keyfile: /path/to/steam-dbt-prod-key.json   # TODO: replace with Workload Identity
+      threads: 8
+      timeout_seconds: 600
+      priority: batch

@@ -1,0 +1,49 @@
+# Deploy: runs on merge to main — build images, terraform plan/apply, deploy DAG
+# DESIGN.md §11: "On merge to main: build & push images; terraform plan (gated apply);
+#                  deploy DAG to Composer's GCS bucket; optionally deploy Cloud Run."
+# Auth: Workload Identity Federation — no long-lived JSON keys.
+
+name: Deploy
+
+# TODO: change back to push trigger + add WIF auth when ready.
+on:
+  workflow_dispatch:
+
+# TODO: populate env vars from GCP project
+env:
+  PROJECT_ID: steam-reviews-platform
+  REGION: us-central1
+  # WIF_PROVIDER: projects/<NUM>/locations/global/workloadIdentityPools/<POOL>/providers/<PROV>
+  # WIF_SA: github-deploy@steam-reviews-platform.iam.gserviceaccount.com
+
+jobs:
+  terraform-plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: add google-github-actions/auth with WIF
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.5"
+      - working-directory: terraform
+        run: terraform init
+      - working-directory: terraform
+        run: terraform plan -out=tfplan
+      # TODO: gated apply step (manual approval via environment protection rule)
+
+  build-ingester:
+    name: Build & push ingester image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: auth + docker build + push to Artifact Registry
+      - run: echo "TODO — build docker/ingester.Dockerfile"
+
+  build-api:
+    name: Build & push API image
+    runs-on: ubuntu-latest
+    if: false   # enable when api/ is implemented
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "TODO — build api/Dockerfile"
