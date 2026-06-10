@@ -29,7 +29,7 @@ resource "google_cloud_run_v2_service" "recommender_api" {
           cpu    = "1"
           memory = "512Mi"
         }
-        cpu_idle = true  # Only charge CPU during request processing
+        cpu_idle = true # Only charge CPU during request processing
       }
 
       env {

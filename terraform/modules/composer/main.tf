@@ -16,7 +16,7 @@ resource "google_composer_environment" "this" {
       }
 
       pypi_packages = {
-        "apache-airflow-providers-google"   = ">=10.0.0"
+        "apache-airflow-providers-google"          = ">=10.0.0"
         "apache-airflow-providers-cncf-kubernetes" = ">=7.0.0"
       }
 

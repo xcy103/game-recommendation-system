@@ -12,7 +12,6 @@ import pytest
 
 from ingestion.checkpoint import CheckpointBackend, LocalCheckpoint, make_checkpoint
 
-
 APPID = 730
 DT = "2024-01-01"
 
@@ -20,6 +19,7 @@ DT = "2024-01-01"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make(tmp_path, dt=DT):
     return LocalCheckpoint(base_dir=tmp_path, dt=dt)
@@ -33,6 +33,7 @@ def _state(cursor="cursor_A", page=0):
 # Protocol conformance
 # ---------------------------------------------------------------------------
 
+
 class TestProtocol:
     def test_local_checkpoint_satisfies_protocol(self, tmp_path):
         cp = _make(tmp_path)
@@ -42,6 +43,7 @@ class TestProtocol:
 # ---------------------------------------------------------------------------
 # Load / Save / Clear
 # ---------------------------------------------------------------------------
+
 
 class TestLoadSaveClear:
     def test_load_nonexistent_returns_none(self, tmp_path):
@@ -95,6 +97,7 @@ class TestLoadSaveClear:
 # Atomic write behaviour
 # ---------------------------------------------------------------------------
 
+
 class TestAtomicWrite:
     def test_checkpoint_file_is_valid_json(self, tmp_path):
         cp = _make(tmp_path)
@@ -114,6 +117,7 @@ class TestAtomicWrite:
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
+
 
 class TestFactory:
     def test_make_checkpoint_local(self, tmp_path):

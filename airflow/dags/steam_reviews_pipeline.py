@@ -32,12 +32,12 @@ from airflow.models.dag import DAG
 from airflow.operators.bash import BashOperator
 
 # ── Pipeline constants (match terraform/terraform.tfvars) ─────────────────
-_PROJECT  = "steam-reviews-platform"
-_REGION   = "us-central1"
-_ENV      = "dev"
-_GOLD     = f"steam_gold_{_ENV}"
-_SILVER   = f"{_PROJECT}-silver-{_ENV}"
-_STAGING  = f"{_PROJECT}-dataproc-staging-{_ENV}"
+_PROJECT = "steam-reviews-platform"
+_REGION = "us-central1"
+_ENV = "dev"
+_GOLD = f"steam_gold_{_ENV}"
+_SILVER = f"{_PROJECT}-silver-{_ENV}"
+_STAGING = f"{_PROJECT}-dataproc-staging-{_ENV}"
 _SPARK_SA = f"steam-spark-{_ENV}@{_PROJECT}.iam.gserviceaccount.com"
 
 # Shared env injected into every BashOperator.
@@ -45,15 +45,15 @@ _SPARK_SA = f"steam-spark-{_ENV}@{_PROJECT}.iam.gserviceaccount.com"
 # LOCAL_MODE is read from the container environment at parse time so it
 # propagates into the subprocess even though BashOperator replaces os.environ.
 _BASE_ENV: dict[str, str] = {
-    "DT":          "{{ ds }}",   # rendered to YYYY-MM-DD at runtime
-    "PROJECT_ID":  _PROJECT,
-    "REGION":      _REGION,
+    "DT": "{{ ds }}",  # rendered to YYYY-MM-DD at runtime
+    "PROJECT_ID": _PROJECT,
+    "REGION": _REGION,
     "ENVIRONMENT": _ENV,
-    "GOLD":        _GOLD,
-    "SILVER":      _SILVER,
-    "STAGING":     _STAGING,
-    "SPARK_SA":    _SPARK_SA,
-    "LOCAL_MODE":  os.getenv("LOCAL_MODE", "false"),
+    "GOLD": _GOLD,
+    "SILVER": _SILVER,
+    "STAGING": _STAGING,
+    "SPARK_SA": _SPARK_SA,
+    "LOCAL_MODE": os.getenv("LOCAL_MODE", "false"),
 }
 
 # Local-mode guard reused at the top of every bash_command.
@@ -76,10 +76,10 @@ DEFAULT_ARGS = {
 with DAG(
     dag_id="steam_reviews_pipeline",
     description="Daily Bronze→Silver→BQ Staging→dbt Gold→ALS Recommendations",
-    schedule="0 6 * * *",        # 06:00 UTC daily
+    schedule="0 6 * * *",  # 06:00 UTC daily
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    max_active_runs=1,            # one active run at a time; prevents overlapping partitions
+    max_active_runs=1,  # one active run at a time; prevents overlapping partitions
     default_args=DEFAULT_ARGS,
     tags=["steam", "batch", "medallion"],
     doc_md=__doc__,

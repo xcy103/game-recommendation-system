@@ -20,6 +20,7 @@ spark = [
     "pyspark>=3.5",
     "vaderSentiment>=3.3",
     "pyarrow>=12.0",
+    "pandas>=1.5",
     "google-cloud-bigquery>=3.14",
     "google-cloud-storage>=2.14",
 ]
@@ -60,8 +61,11 @@ select = ["E", "F", "W", "I", "UP", "B"]
 ignore = ["E501"]  # line length handled by black
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]   # assert is fine in tests
-"*/tests/*" = ["S101"]
+"tests/*" = ["S101"]
+"*/tests/*" = ["S101", "B017"]
+# spark scripts manipulate sys.path before third-party imports (standalone entry-point pattern)
+"spark/*.py" = ["E402"]
+"spark/tests/*.py" = ["E402"]
 
 # ---------------------------------------------------------------------------
 # Black config

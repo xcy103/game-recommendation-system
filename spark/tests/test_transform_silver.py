@@ -12,13 +12,13 @@ Coverage:
   - Sentiment: sentiment_score and sentiment_label columns added with correct values
   - Build matrix: user_sk, appid, implicit_rating columns; rating in [0, 1]
 """
+
 from __future__ import annotations
 
 import pathlib
 import sys
 
 import pytest
-from chispa import assert_df_equality
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
@@ -105,10 +105,25 @@ def _row(
     dt: str = "2024-01-01",
 ) -> tuple:
     return (
-        recommendationid, steamid, playtime_forever, playtime_at_review,
-        num_reviews, language, review, timestamp_created, timestamp_updated,
-        voted_up, votes_up, votes_funny, weighted_vote_score, comment_count,
-        steam_purchase, received_for_free, written_during_early_access, appid, dt,
+        recommendationid,
+        steamid,
+        playtime_forever,
+        playtime_at_review,
+        num_reviews,
+        language,
+        review,
+        timestamp_created,
+        timestamp_updated,
+        voted_up,
+        votes_up,
+        votes_funny,
+        weighted_vote_score,
+        comment_count,
+        steam_purchase,
+        received_for_free,
+        written_during_early_access,
+        appid,
+        dt,
     )
 
 
@@ -218,10 +233,10 @@ class TestDerivedFeatures:
 
     def test_playtime_buckets(self, spark):
         data = [
-            _row("lt1hr", playtime_at_review=30),     # 0.5 h  → "< 1hr"
-            _row("1to10", playtime_at_review=300),    # 5 h    → "1-10hr"
-            _row("10to100", playtime_at_review=3600), # 60 h   → "10-100hr"
-            _row("100plus", playtime_at_review=36000),# 600 h  → "100+hr"
+            _row("lt1hr", playtime_at_review=30),  # 0.5 h  → "< 1hr"
+            _row("1to10", playtime_at_review=300),  # 5 h    → "1-10hr"
+            _row("10to100", playtime_at_review=3600),  # 60 h   → "10-100hr"
+            _row("100plus", playtime_at_review=36000),  # 600 h  → "100+hr"
         ]
         df = spark.createDataFrame(data, _SCHEMA)
         result = add_derived_features(df)
@@ -234,7 +249,7 @@ class TestDerivedFeatures:
     def test_helpfulness_ratio_range(self, spark):
         data = [
             _row("r1", votes_up=100, votes_funny=0),  # ~1.0 / 101 → 0.99
-            _row("r2", votes_up=0, votes_funny=0),    # 0 / 1 = 0.0
+            _row("r2", votes_up=0, votes_funny=0),  # 0 / 1 = 0.0
         ]
         df = spark.createDataFrame(data, _SCHEMA)
         result = add_derived_features(df)
@@ -314,12 +329,24 @@ class TestFullPipelineSchema:
         df = add_derived_features(df)
         df = add_sentiment_columns(df)
         required = {
-            "recommendationid", "steamid", "language", "review",
-            "timestamp_created", "timestamp_updated",
-            "voted_up", "votes_up", "votes_funny", "comment_count",
-            "appid", "dt",
-            "review_length", "playtime_hours", "playtime_bucket", "helpfulness_ratio",
-            "sentiment_score", "sentiment_label",
+            "recommendationid",
+            "steamid",
+            "language",
+            "review",
+            "timestamp_created",
+            "timestamp_updated",
+            "voted_up",
+            "votes_up",
+            "votes_funny",
+            "comment_count",
+            "appid",
+            "dt",
+            "review_length",
+            "playtime_hours",
+            "playtime_bucket",
+            "helpfulness_ratio",
+            "sentiment_score",
+            "sentiment_label",
         }
         missing = required - set(df.columns)
         assert not missing, f"Missing columns after full enrichment: {missing}"
@@ -355,13 +382,13 @@ class TestBuildMatrix:
         data = [
             _row("r1", steamid="u1", voted_up=True, playtime_at_review=36000),  # 600 h
             _row("r2", steamid="u2", voted_up=False, playtime_at_review=0),
-            _row("r3", steamid="u3", voted_up=True, playtime_at_review=60),     # 1 h
+            _row("r3", steamid="u3", voted_up=True, playtime_at_review=60),  # 1 h
         ]
         df = spark.createDataFrame(data, _SCHEMA)
         for row in build_user_item_matrix(df).collect():
-            assert 0.0 <= row.implicit_rating <= 1.0, (
-                f"implicit_rating={row.implicit_rating} out of [0, 1] for user {row.user_sk}"
-            )
+            assert (
+                0.0 <= row.implicit_rating <= 1.0
+            ), f"implicit_rating={row.implicit_rating} out of [0, 1] for user {row.user_sk}"
 
     def test_voted_up_true_higher_than_false(self, spark):
         """A thumbs-up review should produce a higher rating than thumbs-down
@@ -385,8 +412,6 @@ class TestBuildMatrix:
         assert result.count() == 1
 
     def test_steamid_maps_to_user_sk(self, spark):
-        df = spark.createDataFrame(
-            [_row("r1", steamid="76561198000000001")], _SCHEMA
-        )
+        df = spark.createDataFrame([_row("r1", steamid="76561198000000001")], _SCHEMA)
         row = build_user_item_matrix(df).first()
         assert row.user_sk == "76561198000000001"
