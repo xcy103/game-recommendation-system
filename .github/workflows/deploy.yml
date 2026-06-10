@@ -66,8 +66,9 @@ jobs:
           echo "\`${SHA_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ── Job 2: Terraform plan — show what would change on next manual apply ─────
-  # Uses -backend=false because the GCS state bucket is created by the first
-  # terraform apply (which is manual). Switch to real backend once state exists.
+  # CI SA has roles/storage.objectViewer on the tfstate bucket (via wif module),
+  # so `terraform init` can read the GCS backend. -lock=false skips state locking
+  # since this is a read-only plan step.
   terraform-plan:
     name: Terraform plan
     runs-on: ubuntu-latest
@@ -88,12 +89,13 @@ jobs:
 
       - name: terraform init
         working-directory: terraform
-        run: terraform init -backend=false
+        run: terraform init -reconfigure
 
       - name: terraform plan
         working-directory: terraform
         run: |
           terraform plan \
+            -lock=false \
             -var="project_id=${{ env.PROJECT_ID }}" \
             -var="github_repo=xcy103/game-recommendation-system" \
             -var="enable_wif=true" \

@@ -17,3 +17,8 @@ variable "github_repo" {
   type        = string
   description = "GitHub repository in org/name format, e.g. xcy103/game-recommendation-system"
 }
+
+variable "tfstate_bucket" {
+  type        = string
+  description = "GCS bucket that holds the Terraform remote state (read access granted to CI SA for terraform plan)"
+}

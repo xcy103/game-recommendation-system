@@ -145,10 +145,11 @@ module "wif" {
   count  = var.enable_wif ? 1 : 0
   source = "./modules/wif"
 
-  project_id  = var.project_id
-  region      = var.region
-  environment = var.environment
-  github_repo = var.github_repo
+  project_id     = var.project_id
+  region         = var.region
+  environment    = var.environment
+  github_repo    = var.github_repo
+  tfstate_bucket = "${var.project_id}-tfstate"
 
   depends_on = [google_project_service.apis]
 }

@@ -71,6 +71,14 @@ resource "google_project_iam_member" "ci_viewer" {
   member  = "serviceAccount:${google_service_account.github_ci.email}"
 }
 
+# Read-only access to Terraform remote state — allows `terraform plan` in CI
+# without requiring a full state admin role.
+resource "google_storage_bucket_iam_member" "ci_tfstate_viewer" {
+  bucket = var.tfstate_bucket
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.github_ci.email}"
+}
+
 # ---------------------------------------------------------------------------
 # Artifact Registry Docker repository
 # ---------------------------------------------------------------------------
