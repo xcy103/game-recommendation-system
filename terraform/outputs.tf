@@ -52,3 +52,18 @@ output "cloudrun_service_url" {
   description = "Recommender API URL (only set when enable_cloudrun = true)"
   value       = var.enable_cloudrun ? module.cloudrun[0].service_url : "Cloud Run disabled — set enable_cloudrun=true to deploy"
 }
+
+output "workload_identity_provider" {
+  description = "WIF provider name — set as GCP_WORKLOAD_IDENTITY_PROVIDER in GitHub repo secrets"
+  value       = var.enable_wif ? module.wif[0].workload_identity_provider : "WIF disabled — set enable_wif=true to create"
+}
+
+output "github_ci_sa_email" {
+  description = "CI SA email — set as GCP_SERVICE_ACCOUNT in GitHub repo secrets"
+  value       = var.enable_wif ? module.wif[0].github_ci_sa_email : "WIF disabled — set enable_wif=true to create"
+}
+
+output "artifact_registry_url" {
+  description = "Artifact Registry base URL — use as image prefix in deploy workflow"
+  value       = var.enable_wif ? module.wif[0].artifact_registry_url : "WIF disabled — set enable_wif=true to create"
+}

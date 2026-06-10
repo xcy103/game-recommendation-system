@@ -21,6 +21,18 @@ variable "environment" {
 
 # --- Feature gates (off by default to control cost) ---
 
+variable "enable_wif" {
+  type        = bool
+  description = "Create Workload Identity Federation pool + GitHub CI service account + Artifact Registry repo."
+  default     = false
+}
+
+variable "github_repo" {
+  type        = string
+  description = "GitHub repository in org/name format (e.g. xcy103/game-recommendation-system). Required when enable_wif=true."
+  default     = ""
+}
+
 variable "enable_dataproc" {
   type        = bool
   description = "Create Dataproc Serverless prerequisites (staging bucket + IAM). Required before running spark jobs on GCP."
