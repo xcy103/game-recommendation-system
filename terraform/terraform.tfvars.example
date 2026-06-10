@@ -39,5 +39,13 @@ composer_image_version = "composer-2.6.6-airflow-2.7.3"
 
 # ── Cloud Run image (only used when enable_cloudrun = true) ─────────────────
 # Replace with your Artifact Registry image once built:
-#   us-central1-docker.pkg.dev/steam-reviews-platform/steam-images/recommender-api:latest
+#   us-central1-docker.pkg.dev/steam-reviews-platform/steam-dev/ingester:latest
 cloudrun_image = "us-docker.pkg.dev/cloudrun/container/hello"
+
+# ── Workload Identity Federation (DESIGN §11) ────────────────────────────────
+# Creates: WIF pool + GitHub OIDC provider + CI SA + Artifact Registry repo.
+# After apply, run `terraform output` to get the two values for GitHub secrets:
+#   GCP_WORKLOAD_IDENTITY_PROVIDER  ← workload_identity_provider output
+#   GCP_SERVICE_ACCOUNT             ← github_ci_sa_email output
+enable_wif  = false   # set to true to create WIF resources
+github_repo = "xcy103/game-recommendation-system"

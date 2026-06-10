@@ -29,6 +29,7 @@ resource "google_project_service" "apis" {
     "cloudbuild.googleapis.com",
     "billingbudgets.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "sts.googleapis.com",
   ])
 
   project                    = var.project_id
@@ -133,6 +134,23 @@ module "cloudrun" {
   container_image = var.cloudrun_image
 
   depends_on = [module.iam, google_project_service.apis]
+}
+
+# ---------------------------------------------------------------------------
+# WIF module — GitHub Actions → GCP auth (no SA key files)
+# DESIGN.md §11: Workload Identity Federation for CI/CD
+# Also creates the Artifact Registry Docker repository.
+# ---------------------------------------------------------------------------
+module "wif" {
+  count  = var.enable_wif ? 1 : 0
+  source = "./modules/wif"
+
+  project_id  = var.project_id
+  region      = var.region
+  environment = var.environment
+  github_repo = var.github_repo
+
+  depends_on = [google_project_service.apis]
 }
 
 # ---------------------------------------------------------------------------
