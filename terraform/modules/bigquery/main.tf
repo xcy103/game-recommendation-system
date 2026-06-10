@@ -99,6 +99,9 @@ resource "google_bigquery_table" "game_recommendations" {
   # Cluster by user_sk for fast user-level lookups by the FastAPI demo
   clustering = ["user_sk"]
 
+  # Prevent full-table scans (2M+ rows/day) — queries must include a generated_at filter
+  require_partition_filter = true
+
   time_partitioning {
     type  = "DAY"
     field = "generated_at"
