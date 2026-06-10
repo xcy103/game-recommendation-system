@@ -52,8 +52,8 @@ class TestTokenBucket:
     def test_acquire_sleeps_when_tokens_exhausted(self, mock_sleep):
         """After exhausting the burst, acquire() must call time.sleep."""
         rl = RateLimiter(rate=1.0, burst=1, jitter=0.0)
-        rl.acquire()   # consumes the only token immediately
-        rl.acquire()   # now tokens=0, should sleep
+        rl.acquire()  # consumes the only token immediately
+        rl.acquire()  # now tokens=0, should sleep
         assert mock_sleep.called, "Expected time.sleep to be called when tokens are exhausted"
 
     @patch("time.sleep")

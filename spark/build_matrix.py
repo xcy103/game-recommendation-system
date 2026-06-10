@@ -23,6 +23,7 @@ Usage (local):
         --output ./data/silver \\
         --dt 2024-01-01
 """
+
 from __future__ import annotations
 
 import argparse
@@ -61,7 +62,9 @@ def build_user_item_matrix(df: DataFrame) -> DataFrame:
             "playtime_boost",
             F.least(
                 F.log(
-                    F.lit(1.0) + F.coalesce(F.col("playtime_at_review"), F.lit(0)).cast(T.DoubleType()) / F.lit(60.0)
+                    F.lit(1.0)
+                    + F.coalesce(F.col("playtime_at_review"), F.lit(0)).cast(T.DoubleType())
+                    / F.lit(60.0)
                 )
                 / F.lit(_MAX_LOG_HOURS),
                 F.lit(1.0),
@@ -116,7 +119,9 @@ def run(
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Build user-item interaction matrix from silver Parquet")
+    p = argparse.ArgumentParser(
+        description="Build user-item interaction matrix from silver Parquet"
+    )
     p.add_argument("--dt", required=True, help="Partition date YYYY-MM-DD")
     p.add_argument("--input", required=True, help="Silver base path (contains reviews/ subdir)")
     p.add_argument("--output", required=True, help="Output base path for user_item_matrix/")

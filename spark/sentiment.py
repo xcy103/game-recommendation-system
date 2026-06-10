@@ -10,6 +10,7 @@ Exported:
     score_batch(texts)      → [(score, label), ...]  VADER, for non-Spark use
     add_sentiment_columns(df) → DataFrame            PySpark entry point
 """
+
 from __future__ import annotations
 
 from typing import Literal
@@ -56,6 +57,7 @@ def _make_vader_analyzer():
         return SentimentIntensityAnalyzer()
     except (NotADirectoryError, FileNotFoundError, OSError):
         import pkgutil
+
         obj = object.__new__(SentimentIntensityAnalyzer)
         lex_bytes = pkgutil.get_data("vaderSentiment", "vader_lexicon.txt")
         obj.lexicon_full_filepath = (lex_bytes or b"").decode("utf-8")
@@ -90,6 +92,7 @@ def score_batch(texts: list[str]) -> list[tuple[float, SentimentLabel]]:
 @F.pandas_udf(T.DoubleType())
 def _vader_score_udf(texts: pd.Series) -> pd.Series:
     from spark.sentiment import _make_vader_analyzer
+
     analyzer = _make_vader_analyzer()
     return texts.fillna("").apply(lambda t: float(analyzer.polarity_scores(t)["compound"]))
 
@@ -107,8 +110,6 @@ def add_sentiment_columns(df: DataFrame) -> DataFrame:
     _vader_score_udf with a new pandas UDF and leave this function's
     signature unchanged.
     """
-    return (
-        df.withColumn("sentiment_score", _vader_score_udf(F.col("review"))).withColumn(
-            "sentiment_label", _label_udf(F.col("sentiment_score"))
-        )
+    return df.withColumn("sentiment_score", _vader_score_udf(F.col("review"))).withColumn(
+        "sentiment_label", _label_udf(F.col("sentiment_score"))
     )

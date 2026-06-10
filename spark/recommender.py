@@ -24,6 +24,7 @@ IAM note:
 Usage (Dataproc Serverless):
   See scripts/dataproc_als_train.sh — it handles bq extract / bq load framing.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,7 +32,7 @@ import logging
 import math
 import pathlib
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
@@ -77,12 +78,9 @@ def _build_interactions(spark: SparkSession, silver_path: str) -> DataFrame:
     raw = spark.read.parquet(silver_path)
 
     with_rating = (
-        raw
-        .withColumn(
+        raw.withColumn(
             "voted_up_score",
-            F.when(F.col("voted_up"), F.lit(1.0))
-            .otherwise(F.lit(0.0))
-            .cast(T.DoubleType()),
+            F.when(F.col("voted_up"), F.lit(1.0)).otherwise(F.lit(0.0)).cast(T.DoubleType()),
         )
         .withColumn(
             "playtime_boost",
@@ -98,16 +96,15 @@ def _build_interactions(spark: SparkSession, silver_path: str) -> DataFrame:
         )
         .withColumn(
             "implicit_rating",
-            (F.lit(0.6) * F.col("voted_up_score") + F.lit(0.4) * F.col("playtime_boost"))
-            .cast(T.DoubleType()),
+            (F.lit(0.6) * F.col("voted_up_score") + F.lit(0.4) * F.col("playtime_boost")).cast(
+                T.DoubleType()
+            ),
         )
         .filter(F.col("steamid").isNotNull())
     )
 
-    interactions = (
-        with_rating
-        .groupBy("steamid", "appid")
-        .agg(F.max("implicit_rating").alias("rating"))
+    interactions = with_rating.groupBy("steamid", "appid").agg(
+        F.max("implicit_rating").alias("rating")
     )
 
     n = interactions.count()
@@ -132,16 +129,16 @@ def _add_integer_ids(
     """
     # dense_rank returns BIGINT; subtract 1 for 0-based indexing
     user_map = (
-        interactions
-        .select("steamid").distinct()
+        interactions.select("steamid")
+        .distinct()
         .withColumn(
             "user_idx",
             (F.dense_rank().over(Window.orderBy("steamid")) - 1).cast(T.IntegerType()),
         )
     )
     item_map = (
-        interactions
-        .select("appid").distinct()
+        interactions.select("appid")
+        .distinct()
         .withColumn(
             "item_idx",
             (F.dense_rank().over(Window.orderBy("appid")) - 1).cast(T.IntegerType()),
@@ -149,8 +146,7 @@ def _add_integer_ids(
     )
 
     als_data = (
-        interactions
-        .join(user_map, "steamid")
+        interactions.join(user_map, "steamid")
         .join(item_map, "appid")
         .select("user_idx", "item_idx", "rating", "steamid", "appid")
         .cache()
@@ -167,9 +163,7 @@ def _add_integer_ids(
 # ---------------------------------------------------------------------------
 
 
-def _train_and_evaluate(
-    train: DataFrame, test: DataFrame, k: int = _EVAL_K
-) -> tuple:
+def _train_and_evaluate(train: DataFrame, test: DataFrame, k: int = _EVAL_K) -> tuple:
     """Train implicit-feedback ALS and compute ranking metrics on the test set.
 
     Returns (model, precision_at_k, ndcg_at_k).
@@ -190,7 +184,10 @@ def _train_and_evaluate(
 
     logger.info(
         "Training ALS — rank=%d  maxIter=%d  regParam=%.4f  alpha=%.1f",
-        _ALS_RANK, _ALS_ITER, _ALS_REG, _ALS_ALPHA,
+        _ALS_RANK,
+        _ALS_ITER,
+        _ALS_REG,
+        _ALS_ALPHA,
     )
     model = als.fit(train)
     logger.info("ALS training complete")
@@ -203,11 +200,7 @@ def _train_and_evaluate(
         "user_idx",
         F.col("recommendations.item_idx").alias("predicted_items"),
     )
-    actual = (
-        test
-        .groupBy("user_idx")
-        .agg(F.collect_list("item_idx").alias("actual_items"))
-    )
+    actual = test.groupBy("user_idx").agg(F.collect_list("item_idx").alias("actual_items"))
 
     eval_df = predicted.join(actual, "user_idx")
     pred_actual_rdd = eval_df.select("predicted_items", "actual_items").rdd.map(tuple)
@@ -251,20 +244,16 @@ def _write_recommendations_gcs(
 
     Returns the number of recommendation rows written.
     """
-    generated_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    generated_ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Explode all candidates (already scored/sorted inside the ALS struct)
-    exploded = (
-        all_recs
-        .select(
-            "user_idx",
-            F.posexplode("recommendations").alias("_pos", "rec"),
-        )
-        .select(
-            "user_idx",
-            F.col("rec.item_idx").alias("item_idx"),
-            F.col("rec.rating").cast(T.DoubleType()).alias("score"),
-        )
+    exploded = all_recs.select(
+        "user_idx",
+        F.posexplode("recommendations").alias("_pos", "rec"),
+    ).select(
+        "user_idx",
+        F.col("rec.item_idx").alias("item_idx"),
+        F.col("rec.rating").cast(T.DoubleType()).alias("score"),
     )
 
     # Remove items the user has already interacted with (anti-join)
@@ -273,18 +262,15 @@ def _write_recommendations_gcs(
 
     # Re-rank per user by score (descending) and keep top_n
     rank_win = Window.partitionBy("user_idx").orderBy(F.col("score").desc())
-    top_unseen = (
-        unseen
-        .withColumn("rank", F.row_number().over(rank_win).cast(T.LongType()))
-        .filter(F.col("rank") <= top_n)
+    top_unseen = unseen.withColumn("rank", F.row_number().over(rank_win).cast(T.LongType())).filter(
+        F.col("rank") <= top_n
     )
 
     # Map indices back to original IDs and resolve user_sk
     result = (
-        top_unseen
-        .join(user_map, "user_idx")     # → steamid
-        .join(item_map, "item_idx")     # → appid
-        .join(dim_users, "steamid")     # → user_sk (FARM_FINGERPRINT from BQ dbt)
+        top_unseen.join(user_map, "user_idx")  # → steamid
+        .join(item_map, "item_idx")  # → appid
+        .join(dim_users, "steamid")  # → user_sk (FARM_FINGERPRINT from BQ dbt)
         .filter(F.col("user_sk").isNotNull())
         .select(
             F.col("user_sk").cast(T.LongType()),
@@ -298,7 +284,8 @@ def _write_recommendations_gcs(
     n_rows = result.count()
     logger.info(
         "Writing %d recommendation rows (seen-items filtered) to GCS: %s",
-        n_rows, output_path,
+        n_rows,
+        output_path,
     )
     result.write.mode("overwrite").parquet(output_path)
     logger.info("Wrote recommendations Parquet to %s", output_path)
@@ -347,27 +334,26 @@ def run(spark: SparkSession, args: argparse.Namespace) -> None:
     # 5. Load user_sk mapping from pre-exported dim_users Parquet (GCS)
     #    The export is done by dataproc_als_train.sh before submitting this job.
     logger.info("Reading dim_users from %s", args.dim_users_path)
-    dim_users = (
-        spark.read
-        .parquet(args.dim_users_path)
-        .select("steamid", F.col("user_sk"))
-    )
+    dim_users = spark.read.parquet(args.dim_users_path).select("steamid", F.col("user_sk"))
 
     # 6. Write top-N unseen recommendations Parquet to GCS
     output_path = f"gs://{args.staging_bucket}/recommendations/{args.dt}/"
     n_rows = _write_recommendations_gcs(
-        all_recs, user_map, item_map, dim_users,
-        seen_interactions=als_data,   # full train ∪ test — no seen item survives
+        all_recs,
+        user_map,
+        item_map,
+        dim_users,
+        seen_interactions=als_data,  # full train ∪ test — no seen item survives
         output_path=output_path,
         top_n=args.top_n,
     )
 
     print(f"\n{'='*60}")
-    print(f"  Recommendations Parquet written to GCS (seen-items filtered)")
+    print("  Recommendations Parquet written to GCS (seen-items filtered)")
     print(f"  Path      : {output_path}")
     print(f"  Rows      : {n_rows:,}")
     print(f"  Top-N     : {args.top_n}")
-    print(f"  Next step : bq load → game_recommendations")
+    print("  Next step : bq load → game_recommendations")
     print(f"{'='*60}\n")
 
 
@@ -380,8 +366,12 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description="Train Spark MLlib ALS and write top-N recommendations to GCS Parquet"
     )
-    p.add_argument("--dt", required=True, help="Snapshot date YYYY-MM-DD (selects silver partition)")
-    p.add_argument("--silver-bucket", required=True, help="GCS bucket name (no gs://) for silver Parquet")
+    p.add_argument(
+        "--dt", required=True, help="Snapshot date YYYY-MM-DD (selects silver partition)"
+    )
+    p.add_argument(
+        "--silver-bucket", required=True, help="GCS bucket name (no gs://) for silver Parquet"
+    )
     p.add_argument("--staging-bucket", required=True, help="GCS bucket name for output Parquet")
     p.add_argument(
         "--dim-users-path",
@@ -405,8 +395,7 @@ if __name__ == "__main__":
         datefmt="%H:%M:%S",
     )
     spark = (
-        SparkSession.builder
-        .appName("steam-als-recommender")
+        SparkSession.builder.appName("steam-als-recommender")
         .config("spark.ui.enabled", "false")
         .getOrCreate()
     )

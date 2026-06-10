@@ -17,7 +17,6 @@ Verified properties:
 from __future__ import annotations
 
 import json
-import pathlib
 from unittest.mock import patch
 
 import pytest
@@ -27,7 +26,6 @@ from tenacity import retry, stop_after_attempt, wait_none
 from ingestion.checkpoint import LocalCheckpoint
 from ingestion.ingester import (
     STEAM_REVIEW_URL,
-    _write_page,
     ingest_appid,
 )
 from ingestion.rate_limiter import RateLimiter
@@ -53,8 +51,12 @@ def _page(cursor_out: str, n_reviews: int = 2, cursor_in: str = "*") -> dict:
     reviews = [
         {
             "recommendationid": f"r{i}_{cursor_in}",
-            "author": {"steamid": f"user{i}", "playtime_forever": 100, "playtime_at_review": 50,
-                       "num_reviews": 1},
+            "author": {
+                "steamid": f"user{i}",
+                "playtime_forever": 100,
+                "playtime_at_review": 50,
+                "num_reviews": 1,
+            },
             "language": "english",
             "review": f"Review {i}",
             "timestamp_created": 1700000000,
@@ -88,7 +90,11 @@ def _run(appid=APPID, dt=DT, out_dir=None, checkpoint=None, tmp_path=None):
     out = out_dir or tmp_path / "bronze"
     cp = checkpoint or LocalCheckpoint(tmp_path / "cp", dt)
     return ingest_appid(
-        appid, dt, out, cp, _FAST_RL,
+        appid,
+        dt,
+        out,
+        cp,
+        _FAST_RL,
         _retry_decorator=_FAST_RETRY,
     )
 
@@ -96,6 +102,7 @@ def _run(appid=APPID, dt=DT, out_dir=None, checkpoint=None, tmp_path=None):
 # ---------------------------------------------------------------------------
 # 1. Pagination stop — empty response
 # ---------------------------------------------------------------------------
+
 
 class TestPaginationStops:
     @resp_lib.activate
@@ -122,7 +129,7 @@ class TestPaginationStops:
         resp_lib.add(resp_lib.GET, URL, json=_page(cursor_out=same_cursor), status=200)
 
         pages = _run(tmp_path=tmp_path)
-        assert pages == 1          # only page 0 written; page 1 not written (loop)
+        assert pages == 1  # only page 0 written; page 1 not written (loop)
         assert len(resp_lib.calls) == 2  # need 2 calls to detect the repeat
 
     @resp_lib.activate
@@ -140,6 +147,7 @@ class TestPaginationStops:
 # ---------------------------------------------------------------------------
 # 2. Bronze file path structure
 # ---------------------------------------------------------------------------
+
 
 class TestBronzeFilePath:
     @resp_lib.activate
@@ -187,9 +195,10 @@ class TestBronzeFilePath:
 # 3. HTTP 429 triggers tenacity retry
 # ---------------------------------------------------------------------------
 
+
 class TestRetryOn429:
     @resp_lib.activate
-    @patch("time.sleep")   # prevent real sleeps from tenacity/rate-limiter
+    @patch("time.sleep")  # prevent real sleeps from tenacity/rate-limiter
     def test_429_retried_then_succeeds(self, mock_sleep, tmp_path):
         """Two 429s followed by a 200 should succeed after retries."""
         resp_lib.add(resp_lib.GET, URL, status=429)
@@ -206,11 +215,10 @@ class TestRetryOn429:
     @patch("time.sleep")
     def test_repeated_429_exhausts_retries(self, mock_sleep, tmp_path):
         """If all attempts fail with 429, tenacity.RetryError must propagate."""
-        from tenacity import RetryError
         for _ in range(10):
             resp_lib.add(resp_lib.GET, URL, status=429)
 
-        with pytest.raises(Exception):   # RetryError or HTTPError
+        with pytest.raises(Exception):  # RetryError or HTTPError
             _run(tmp_path=tmp_path)
 
     @resp_lib.activate
@@ -230,6 +238,7 @@ class TestRetryOn429:
 # 4. Checkpoint resume — the key correctness test
 # ---------------------------------------------------------------------------
 
+
 class TestCheckpointResume:
     @resp_lib.activate
     def test_fresh_run_starts_with_initial_cursor(self, tmp_path):
@@ -239,9 +248,9 @@ class TestCheckpointResume:
         _run(tmp_path=tmp_path)
 
         first_call_url = resp_lib.calls[0].request.url
-        assert "cursor=%2A" in first_call_url or "cursor=*" in first_call_url, (
-            f"Expected cursor=* in URL, got: {first_call_url}"
-        )
+        assert (
+            "cursor=%2A" in first_call_url or "cursor=*" in first_call_url
+        ), f"Expected cursor=* in URL, got: {first_call_url}"
 
     @resp_lib.activate
     def test_resume_starts_from_saved_cursor(self, tmp_path):
@@ -278,12 +287,12 @@ class TestCheckpointResume:
         _run(out_dir=out, checkpoint=cp, tmp_path=tmp_path)
 
         base = out / "bronze" / "reviews" / f"dt={DT}" / f"appid={APPID}"
-        assert (base / "part-00003.json").exists(), (
-            "Resumed run should have written part-00003.json, not part-00000.json"
-        )
-        assert not (base / "part-00000.json").exists(), (
-            "part-00000.json must NOT be written on a resumed run"
-        )
+        assert (
+            base / "part-00003.json"
+        ).exists(), "Resumed run should have written part-00003.json, not part-00000.json"
+        assert not (
+            base / "part-00000.json"
+        ).exists(), "part-00000.json must NOT be written on a resumed run"
 
     @resp_lib.activate
     def test_checkpoint_cleared_after_complete_run(self, tmp_path):
@@ -294,9 +303,7 @@ class TestCheckpointResume:
 
         _run(checkpoint=cp, tmp_path=tmp_path)
 
-        assert cp.load(APPID) is None, (
-            "Checkpoint should be cleared after successful complete run"
-        )
+        assert cp.load(APPID) is None, "Checkpoint should be cleared after successful complete run"
 
     @resp_lib.activate
     def test_checkpoint_preserved_when_run_is_incomplete(self, tmp_path):
@@ -308,7 +315,11 @@ class TestCheckpointResume:
 
         out = tmp_path / "out"
         ingest_appid(
-            APPID, DT, out, cp, _FAST_RL,
+            APPID,
+            DT,
+            out,
+            cp,
+            _FAST_RL,
             max_pages=1,
             _retry_decorator=_FAST_RETRY,
         )

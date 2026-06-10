@@ -40,7 +40,7 @@ class RateLimiter:
         self._rate = rate
         self._burst = float(burst)
         self._jitter = jitter
-        self._tokens = float(burst)        # start full
+        self._tokens = float(burst)  # start full
         self._last_refill = time.monotonic()
         self._lock = threading.Lock()
 

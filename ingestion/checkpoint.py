@@ -26,20 +26,21 @@ import pathlib
 import tempfile
 from typing import Protocol, TypedDict, runtime_checkable
 
-
 # ---------------------------------------------------------------------------
 # Shared types
 # ---------------------------------------------------------------------------
 
+
 class CheckpointState(TypedDict):
-    cursor: str           # pass this as the `cursor` query-param on next request
-    next_page_num: int    # next file will be named part-{next_page_num:05d}.json
+    cursor: str  # pass this as the `cursor` query-param on next request
+    next_page_num: int  # next file will be named part-{next_page_num:05d}.json
     appid: int
 
 
 # ---------------------------------------------------------------------------
 # Protocol — swap implementations without changing caller code
 # ---------------------------------------------------------------------------
+
 
 @runtime_checkable
 class CheckpointBackend(Protocol):
@@ -59,6 +60,7 @@ class CheckpointBackend(Protocol):
 # ---------------------------------------------------------------------------
 # LocalCheckpoint — JSON files under {base_dir}/_checkpoints/dt={dt}/
 # ---------------------------------------------------------------------------
+
 
 class LocalCheckpoint:
     """File-backed checkpoint using one JSON file per (dt, appid).
@@ -132,6 +134,7 @@ class LocalCheckpoint:
 # ---------------------------------------------------------------------------
 # Factory — keeps caller code backend-agnostic
 # ---------------------------------------------------------------------------
+
 
 def make_checkpoint(
     backend: str = "local",

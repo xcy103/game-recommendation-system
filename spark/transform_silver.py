@@ -23,6 +23,7 @@ Usage (Dataproc / spark-submit):
         --output gs://<silver-bucket> \\
         --dt 2024-01-01
 """
+
 from __future__ import annotations
 
 import argparse
@@ -86,12 +87,12 @@ def flatten_reviews(raw_df: DataFrame, dt: str) -> DataFrame:
     return exploded.select(
         F.col("r.recommendationid").cast(T.StringType()).alias("recommendationid"),
         F.col("r.author.steamid").cast(T.StringType()).alias("steamid"),
-        F.coalesce(F.col("r.author.playtime_forever"), F.lit(0)).cast(T.LongType()).alias(
-            "playtime_forever"
-        ),
-        F.coalesce(F.col("r.author.playtime_at_review"), F.lit(0)).cast(T.LongType()).alias(
-            "playtime_at_review"
-        ),
+        F.coalesce(F.col("r.author.playtime_forever"), F.lit(0))
+        .cast(T.LongType())
+        .alias("playtime_forever"),
+        F.coalesce(F.col("r.author.playtime_at_review"), F.lit(0))
+        .cast(T.LongType())
+        .alias("playtime_at_review"),
         F.coalesce(F.col("r.author.num_reviews"), F.lit(0)).cast(T.LongType()).alias("num_reviews"),
         F.col("r.language").cast(T.StringType()).alias("language"),
         F.col("r.review").cast(T.StringType()).alias("review"),
@@ -104,9 +105,9 @@ def flatten_reviews(raw_df: DataFrame, dt: str) -> DataFrame:
         F.coalesce(F.col("r.comment_count"), F.lit(0)).cast(T.LongType()).alias("comment_count"),
         F.col("r.steam_purchase").cast(T.BooleanType()).alias("steam_purchase"),
         F.col("r.received_for_free").cast(T.BooleanType()).alias("received_for_free"),
-        F.col("r.written_during_early_access").cast(T.BooleanType()).alias(
-            "written_during_early_access"
-        ),
+        F.col("r.written_during_early_access")
+        .cast(T.BooleanType())
+        .alias("written_during_early_access"),
         F.col("appid"),
         # Cast dt to DATE so the column type matches the BQ stg_reviews schema.
         # We write to an explicit dt= path (not Spark partitionBy) so `dt` is
@@ -142,9 +143,7 @@ def filter_junk(df: DataFrame, language: str = "english") -> DataFrame:
     Uses regexp_replace to strip ALL Unicode whitespace (spaces, tabs, newlines)
     before checking length — F.trim only strips ASCII spaces.
     """
-    non_whitespace = F.length(
-        F.regexp_replace(F.coalesce(F.col("review"), F.lit("")), r"\s+", "")
-    )
+    non_whitespace = F.length(F.regexp_replace(F.coalesce(F.col("review"), F.lit("")), r"\s+", ""))
     return df.filter(F.col("language") == language).filter(non_whitespace > 0)
 
 
@@ -211,9 +210,7 @@ def transform(
     df_dedup.unpersist()
     df_filtered = df_filtered.cache()
     n_filtered = df_filtered.count()
-    logger.info(
-        "Rows after junk filter: %d  (removed %d)", n_filtered, n_dedup - n_filtered
-    )
+    logger.info("Rows after junk filter: %d  (removed %d)", n_filtered, n_dedup - n_filtered)
 
     df_enriched = add_derived_features(df_filtered)
     df_enriched = add_sentiment_columns(df_enriched)
@@ -250,7 +247,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         required=True,
         help="Silver base path — local (./data/silver) or GCS (gs://bucket/silver)",
     )
-    p.add_argument("--language", default="english", help="Review language filter (default: english)")
+    p.add_argument(
+        "--language", default="english", help="Review language filter (default: english)"
+    )
     p.add_argument(
         "--log-level",
         default="INFO",

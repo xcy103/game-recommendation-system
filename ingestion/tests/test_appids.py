@@ -18,7 +18,9 @@ from ingestion.appids import (
 )
 
 # Minimal fake SteamSpy response: {str(appid): {name: ...}}
-_FAKE_STEAMSPY = {str(appid): {"name": f"Game {appid}", "owners": "1,000,000"} for appid in range(1000, 1020)}
+_FAKE_STEAMSPY = {
+    str(appid): {"name": f"Game {appid}", "owners": "1,000,000"} for appid in range(1000, 1020)
+}
 
 
 class TestFromStatic:

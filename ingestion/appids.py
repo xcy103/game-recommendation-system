@@ -24,21 +24,21 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 STATIC_APPIDS: list[int] = [
-    730,     # Counter-Strike 2
-    570,     # Dota 2
-    440,     # Team Fortress 2
+    730,  # Counter-Strike 2
+    570,  # Dota 2
+    440,  # Team Fortress 2
     271590,  # Grand Theft Auto V
-    1172470, # Apex Legends
-    1245620, # Elden Ring
+    1172470,  # Apex Legends
+    1245620,  # Elden Ring
     292030,  # The Witcher 3: Wild Hunt
     578080,  # PUBG: Battlegrounds
     252950,  # Rocket League
     413150,  # Stardew Valley
-    1091500, # Cyberpunk 2077
-    1174180, # Red Dead Redemption 2
+    1091500,  # Cyberpunk 2077
+    1174180,  # Red Dead Redemption 2
     892970,  # Valheim
     945360,  # Among Us
-    1517290, # Battlefield 2042
+    1517290,  # Battlefield 2042
 ]
 
 STEAMSPY_URL = "https://steamspy.com/api.php"
@@ -48,6 +48,7 @@ _STEAMSPY_PARAMS = {"request": "top100in2weeks"}
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def from_steamspy(
     top_n: int = 100,
@@ -111,7 +112,5 @@ def get_appids(
     try:
         return from_steamspy(top_n=top_n, session=session)
     except Exception as exc:
-        logger.warning(
-            "SteamSpy fetch failed (%s); falling back to static list", exc
-        )
+        logger.warning("SteamSpy fetch failed (%s); falling back to static list", exc)
         return from_static(top_n)

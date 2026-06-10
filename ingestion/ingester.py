@@ -35,7 +35,6 @@ from typing import Any
 
 import requests
 from tenacity import (
-    RetryCallState,
     before_sleep_log,
     retry,
     retry_if_exception,
@@ -43,7 +42,11 @@ from tenacity import (
     wait_exponential,
 )
 
-from ingestion.checkpoint import CheckpointBackend, CheckpointState, LocalCheckpoint, make_checkpoint
+from ingestion.checkpoint import (
+    CheckpointBackend,
+    CheckpointState,
+    make_checkpoint,
+)
 from ingestion.rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -60,6 +63,7 @@ _DEFAULT_NUM_PER_PAGE = 100
 # ---------------------------------------------------------------------------
 # Retry logic (tenacity)
 # ---------------------------------------------------------------------------
+
 
 def _is_retryable(exc: BaseException) -> bool:
     """Retry on HTTP 429 / 5xx and transient network errors."""
@@ -89,6 +93,7 @@ _PROD_RETRY = _make_retry()
 # ---------------------------------------------------------------------------
 # HTTP layer
 # ---------------------------------------------------------------------------
+
 
 def _fetch_page(
     session: requests.Session,
@@ -144,6 +149,7 @@ def _fetch_page(
 # Bronze file I/O
 # ---------------------------------------------------------------------------
 
+
 def _bronze_dir(out_dir: pathlib.Path, dt: str, appid: int) -> pathlib.Path:
     """Return (and create) the directory for one appid's bronze files."""
     p = out_dir / "bronze" / "reviews" / f"dt={dt}" / f"appid={appid}"
@@ -151,7 +157,9 @@ def _bronze_dir(out_dir: pathlib.Path, dt: str, appid: int) -> pathlib.Path:
     return p
 
 
-def _write_page(data: dict, out_dir: pathlib.Path, dt: str, appid: int, page_num: int) -> pathlib.Path:
+def _write_page(
+    data: dict, out_dir: pathlib.Path, dt: str, appid: int, page_num: int
+) -> pathlib.Path:
     """Write a raw API response dict to a bronze part file.
 
     Returns the path written.
@@ -165,6 +173,7 @@ def _write_page(data: dict, out_dir: pathlib.Path, dt: str, appid: int, page_num
 # ---------------------------------------------------------------------------
 # Core ingestion loop
 # ---------------------------------------------------------------------------
+
 
 def ingest_appid(
     appid: int,
@@ -209,7 +218,9 @@ def ingest_appid(
         next_page_num = saved["next_page_num"]
         logger.info(
             "appid=%s: resuming from checkpoint — cursor=%r next_page_num=%d",
-            appid, cursor, next_page_num,
+            appid,
+            cursor,
+            next_page_num,
         )
     else:
         cursor = _INITIAL_CURSOR
@@ -232,7 +243,11 @@ def ingest_appid(
         # --- fetch ---
         logger.debug("appid=%s: fetching cursor=%r", appid, cursor)
         data = _fetch_page(
-            session, appid, cursor, language, num_per_page,
+            session,
+            appid,
+            cursor,
+            language,
+            num_per_page,
             _retry_decorator=_retry_decorator,
         )
 
@@ -252,7 +267,9 @@ def ingest_appid(
 
         # Secondary: detect longer cycles (A→B→C→A) across many pages.
         if new_cursor and new_cursor in used_cursors:
-            logger.info("appid=%s: cursor %r already used — loop detected, stopping", appid, new_cursor)
+            logger.info(
+                "appid=%s: cursor %r already used — loop detected, stopping", appid, new_cursor
+            )
             break
 
         # --- write page ---
@@ -269,7 +286,10 @@ def ingest_appid(
         checkpoint.save(appid, next_state)
         logger.info(
             "appid=%s: page %d written, %d reviews, next_cursor=%r",
-            appid, next_page_num, len(reviews), new_cursor,
+            appid,
+            next_page_num,
+            len(reviews),
+            new_cursor,
         )
 
         cursor = new_cursor
@@ -286,6 +306,7 @@ def ingest_appid(
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
+
 
 def ingest(
     appids: list[int],
@@ -308,8 +329,13 @@ def ingest(
         checkpoint = make_checkpoint("local", base_dir=cp_dir, dt=dt)
         try:
             n = ingest_appid(
-                appid, dt, out_dir, checkpoint, rate_limiter,
-                language=language, max_pages=max_pages,
+                appid,
+                dt,
+                out_dir,
+                checkpoint,
+                rate_limiter,
+                language=language,
+                max_pages=max_pages,
             )
             results[appid] = n
         except Exception:
@@ -323,6 +349,7 @@ def ingest(
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="python -m ingestion.ingester",
@@ -330,39 +357,55 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     id_group = p.add_mutually_exclusive_group(required=True)
     id_group.add_argument(
-        "--appids", nargs="+", type=int, metavar="APPID",
+        "--appids",
+        nargs="+",
+        type=int,
+        metavar="APPID",
         help="One or more Steam appids, e.g. --appids 730 570",
     )
     id_group.add_argument(
-        "--appids-file", type=pathlib.Path, metavar="FILE",
+        "--appids-file",
+        type=pathlib.Path,
+        metavar="FILE",
         help="Text file with one appid per line.",
     )
     p.add_argument(
-        "--dt", required=True,
+        "--dt",
+        required=True,
         help="Partition date YYYY-MM-DD, e.g. 2024-01-01",
     )
     p.add_argument(
-        "--out", type=pathlib.Path, default=pathlib.Path("./data/bronze"),
+        "--out",
+        type=pathlib.Path,
+        default=pathlib.Path("./data/bronze"),
         help="Base output directory (default: ./data/bronze)",
     )
     p.add_argument(
-        "--checkpoint-dir", type=pathlib.Path, default=None,
+        "--checkpoint-dir",
+        type=pathlib.Path,
+        default=None,
         help="Directory for checkpoint files (default: same as --out)",
     )
     p.add_argument(
-        "--language", default="english",
+        "--language",
+        default="english",
         help="Review language filter (default: english)",
     )
     p.add_argument(
-        "--rps", type=float, default=1.0,
+        "--rps",
+        type=float,
+        default=1.0,
         help="Requests per second (default: 1.0 — be conservative!)",
     )
     p.add_argument(
-        "--max-pages", type=int, default=None,
+        "--max-pages",
+        type=int,
+        default=None,
         help="Max pages per appid, useful for smoke tests.",
     )
     p.add_argument(
-        "--log-level", default="INFO",
+        "--log-level",
+        default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
     )
     return p

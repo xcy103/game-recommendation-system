@@ -70,4 +70,17 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install dbt-bigquery
+      - name: Create CI profiles.yml
+        run: |
+          cat > dbt/profiles.yml << 'EOF'
+          steam_reviews:
+            target: dev
+            outputs:
+              dev:
+                type: bigquery
+                method: oauth
+                project: steam-reviews-platform
+                dataset: steam_gold_dev
+                threads: 4
+          EOF
       - run: dbt parse --profiles-dir dbt --project-dir dbt --no-version-check
