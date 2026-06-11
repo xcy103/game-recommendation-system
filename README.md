@@ -371,9 +371,6 @@ recommendation space is small and the held-out set per user is typically 1–2 i
 
 ## Screenshots
 
-*Architecture diagram:*  
-![Architecture](docs/images/architecture.png)
-
 *dbt lineage graph (stg_reviews → dims → fact_reviews → mart):*  
 ![dbt lineage](docs/images/dbt_lineage.png)
 
